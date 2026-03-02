@@ -1,0 +1,5 @@
+# kind cluster config for local dev (used by: kind create cluster --config dev/kind.yaml)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+name: minimal-kube-app

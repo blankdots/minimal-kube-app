@@ -1,0 +1,5 @@
+# Overrides for Tilt + kind local dev (local image, no pull)
+image:
+  repository: blankdots/minimal-kube-app
+  tag: latest
+  pullPolicy: Never

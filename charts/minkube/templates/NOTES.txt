@@ -1,0 +1,8 @@
+1. Get the application URL by running these commands:
+{{- if .Values.gateway.enabled }}
+{{- range $host := .Values.gateway.hostnames }}
+  http://{{ $host }}
+{{- end }}
+{{- end }}
+
+kubectl port-forward deployment/kube-app-api 5005:5005

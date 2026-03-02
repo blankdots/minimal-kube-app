@@ -1,0 +1,47 @@
+{{- if and .Values.gateway.enabled .Values.gateway.gatewayRef.name -}}
+{{- $fullName := include "kube-app.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-api
+  labels:
+    {{- include "kube-app.labels" . | nindent 4 }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.gatewayRef.name }}
+      {{- if .Values.gateway.gatewayRef.namespace }}
+      namespace: {{ .Values.gateway.gatewayRef.namespace }}
+      {{- end }}
+      {{- if .Values.gateway.gatewayRef.sectionName }}
+      sectionName: {{ .Values.gateway.gatewayRef.sectionName }}
+      {{- end }}
+  {{- if .Values.gateway.hostnames }}
+  hostnames:
+    {{- range .Values.gateway.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.gateway.rules }}
+    {{- range .Values.gateway.rules }}
+    - matches:
+        {{- range .matches }}
+        - path:
+            type: {{ .pathType }}
+            value: {{ .path | quote }}
+        {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-api
+          port: {{ $svcPort }}
+    {{- end }}
+    {{- else }}
+    - backendRefs:
+        - name: {{ $fullName }}-api
+          port: {{ $svcPort }}
+    {{- end }}
+{{- end }}

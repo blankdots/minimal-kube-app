@@ -1,0 +1,6 @@
+db:
+  host: 0.0.0.0
+  port: 5432
+  user: app
+  password: password
+  database: app
