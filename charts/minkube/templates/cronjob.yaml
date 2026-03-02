@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "kube-app.fullname" . }}-cronjob
+spec:
+  schedule: {{ .Values.cronjob.schedule | default "*/5 * * * *" |quote }}
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}  
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.cronjob.backoffLimit }}
+      ttlSecondsAfterFinished: {{ .Values.podttl | default 3600 }}
+      template:
+        metadata:
+          labels:
+            cron: {{ include "kube-app.fullname" . }}-cronjob
+        spec:
+          containers:
+          - name: {{ .Chart.Name }}-cronjob
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            resources:
+              {{- toYaml .Values.resources | nindent 12 }}
+            command: ["cronjob"]
+            env:
+            {{- if .Values.log.level }}
+              - name: LOG_LEVEL
+                value: {{ .Values.log.level | quote }}
+            {{- end }}
+              - name: CRONJOB_APIBASE
+                value: {{ .Values.cronjob.apibase | default "https://registry.npmjs.org" | quote }}
+              - name: CRONJOB_PACKAGES
+                value: {{ join "," (default (list "express") .Values.cronjob.packages) | quote }}
+              - name: DB_DATABASE
+                value: {{ default "kube-app" .Values.cnpg.auth.database | quote }}
+              - name: DB_HOST
+                value: {{ required "A valid DB host is required" .Values.cnpg.auth.host | quote }}
+              - name: DB_PORT
+                value: {{ .Values.cnpg.auth.port | quote }}
+              - name: DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    {{- if .Values.cnpg.enabled }}
+                    name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                    key: {{ .Values.cnpg.auth.passwordKey | default "password" }}
+                    {{- else }}
+                    name: {{ include "kube-app.fullname" . }}-dbsecret
+                    key: dbPassword
+                    {{- end }}
+              - name: DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    {{- if .Values.cnpg.enabled }}
+                    name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                    key: {{ .Values.cnpg.auth.usernameKey | default "username" }}
+                    {{- else }}
+                    name: {{ include "kube-app.fullname" . }}-dbsecret
+                    key: dbUser
+                    {{- end }}
+          restartPolicy: Never

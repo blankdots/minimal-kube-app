@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kube-app.fullname" . }}-api
+  labels:
+    {{- include "kube-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kube-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kube-app.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kube-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-api
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["api"]
+          env:
+            - name: GIN_MODE
+              value: release
+          {{- if .Values.log.level }}
+            - name: LOG_LEVEL
+              value: {{ .Values.log.level | quote }}
+          {{- end }}
+            - name: DB_DATABASE
+              value: {{ default "kube-app" .Values.cnpg.auth.database | quote }}
+            - name: DB_HOST
+              value: {{ required "A valid DB host is required" .Values.cnpg.auth.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.cnpg.auth.port | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.cnpg.enabled }}
+                  name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                  key: {{ .Values.cnpg.auth.passwordKey | default "password" }}
+                  {{- else }}
+                  name: {{ include "kube-app.fullname" . }}-dbsecret
+                  key: dbPassword
+                  {{- end }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.cnpg.enabled }}
+                  name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                  key: {{ .Values.cnpg.auth.usernameKey | default "username" }}
+                  {{- else }}
+                  name: {{ include "kube-app.fullname" . }}-dbsecret
+                  key: dbUser
+                  {{- end }}
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kube-app.fullname" . }}-token
+                  key: staticToken
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,139 @@
+# Default values for kube-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/blankdots/minimal-kube-app
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+
+service:
+  type: ClusterIP
+  port: 5005
+
+# Gateway API (gateway.networking.k8s.io) - requires a Gateway controller (Istio, Envoy Gateway, etc.)
+gateway:
+  enabled: false
+  annotations: {}
+  # Reference to an existing Gateway (created by cluster admin or controller)
+  gatewayRef:
+    name: ""  # e.g. my-gateway, gateway
+    namespace: ""  # optional, default: same as release
+    sectionName: ""  # optional, bind to specific listener
+  hostnames:
+    - chart-example.local
+  rules: []
+  # Default: single catch-all rule. Or specify explicit matches:
+  # rules:
+  #   - matches:
+  #       - path: /
+  #         pathType: PathPrefix
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+log:
+  level: "Debug"
+
+cronjob:
+  schedule: ""
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Allow
+  backoffLimit: 1
+  # npm Registry API (no auth). Override via CRONJOB_APIBASE, CRONJOB_PACKAGES
+  apibase: "https://registry.npmjs.org"
+  packages:
+    - express
+    - lodash
+    - react
+
+api:
+  token: "test"
+
+# CloudNative PG cluster (requires CNPG operator installed, e.g. in cnpg-system).
+# See https://cloudnative-pg.io/charts/
+cnpg:
+  enabled: true
+
+  # App connection to the CNPG cluster (service and secret created by the cluster)
+  auth:
+    host: kube-app-cnpg-rw
+    port: 5432
+    database: kube-app
+    secretName: kube-app-cnpg-app
+    usernameKey: username
+    passwordKey: password
+
+  # Values for the CNPG cluster subchart
+  cluster:
+    instances: 1
+    storage:
+      size: 2Gi
+    initdb:
+      database: kube-app
+      owner: kube-app
+      postInitApplicationSQL:
+        - "CREATE TABLE IF NOT EXISTS package_dep (id SERIAL PRIMARY KEY, packageName TEXT NOT NULL UNIQUE, version TEXT NOT NULL, dependencies TEXT, updatedAt TEXT);"
+        - 'GRANT ALL ON TABLE package_dep TO "kube-app";'
+        - 'GRANT USAGE, SELECT ON SEQUENCE package_dep_id_seq TO "kube-app";'
+    enableSuperuserAccess: true
