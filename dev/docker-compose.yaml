@@ -1,0 +1,60 @@
+services:
+
+  db:
+    container_name: db
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=kube-app
+      - POSTGRES_DB=kube-app
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U kube-app -d kube-app'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    command: api
+    container_name: api
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=kube-app
+      - DB_PASSWORD=password
+      - DB_DATABASE=kube-app
+    depends_on:
+      db:
+        condition: service_healthy
+    image: blankdots/minimal-kube-app:latest
+    build:
+      context: ..
+    mem_limit: 128m
+    ports:
+      - "5005:5005"
+    restart: always
+
+  cronjob:
+    command: cronjob
+    container_name: cronjob
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=kube-app
+      - DB_PASSWORD=password
+      - DB_DATABASE=kube-app
+    depends_on:
+      db:
+        condition: service_healthy
+    image: blankdots/minimal-kube-app:latest
+    build:
+      context: ..
+    mem_limit: 128m
+    restart: always
+
+volumes:
+  postgres-data:

@@ -1,0 +1,28 @@
+# Git and CI
+.git
+.github
+.gitignore
+
+# Docs and license (not needed for build)
+*.md
+LICENSE*
+
+# Docker and local dev
+Dockerfile
+.dockerignore
+Tiltfile
+.tiltignore
+Makefile
+config.yaml
+dev
+charts
+
+# Test and coverage
+coverage.txt
+*.test
+
+# IDE and misc
+.vscode
+.idea
+*.tmp
+*.log
