@@ -1,0 +1,16 @@
+apiVersion: v2
+name: kube-app
+description: kube-app exercise helm chart
+type: application
+version: 0.1.0
+kubeVersion: '>= 1.26.0'
+icon: https://avatars.githubusercontent.com/u/47524
+sources:
+- https://github.com/blankdots/minimal-kube-app
+appVersion: "0.1.0"
+dependencies:
+- name: cluster
+  repository: https://cloudnative-pg.github.io/charts
+  alias: cnpg
+  condition: cnpg.enabled
+  version: "0.5.x"

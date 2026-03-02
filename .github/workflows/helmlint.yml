@@ -1,0 +1,33 @@
+name: Helm linting
+
+on:
+  push:
+    paths:
+      - "charts/**"
+      - "**/go.*"
+  pull_request:
+    paths:
+      - "charts/**"
+
+jobs:
+  helmlint:
+    name: Lint charts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v4.0.0"
+
+      - name: Helm dependency build
+        run: |
+          helm repo add cnpg https://cloudnative-pg.github.io/charts
+          helm dependency build charts/minkube
+
+      - name: Helm lint
+        run: helm lint charts/minkube

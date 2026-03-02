@@ -1,0 +1,3 @@
+# Helm touches these when resolving deps; avoid Tiltfile reload loops
+charts/minkube/charts
+charts/minkube/tmpcharts
