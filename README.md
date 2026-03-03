@@ -1,5 +1,7 @@
 ## kube-app
 
+Small Go service that tracks **npm package metadata** (name, version, dependencies) in a PostgreSQL database. A cron job fetches data from the [npm Registry](https://registry.npmjs.org) and stores it; an HTTP API lets you query it by package name (e.g. `/query?package=express`). Intended as a minimal example for running an API + cron job on Kubernetes with Helm, kind, and Tilt.
+
 ### Local Development
 
 The Makefile is primarily designed to be an aid during development work.
