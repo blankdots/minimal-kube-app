@@ -2,6 +2,26 @@ apiVersion: v1
 entries:
   kube-app:
   - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2026-03-07T08:26:21.557180133Z"
+    dependencies:
+    - alias: cnpg
+      condition: cnpg.enabled
+      name: cluster
+      repository: https://cloudnative-pg.github.io/charts
+      version: 0.5.x
+    description: kube-app exercise helm chart
+    digest: 3b5e185cfba67dfe2555e1b5db1eb2bb74edd33873de33b388c82aaa48f51e0d
+    icon: https://avatars.githubusercontent.com/u/47524
+    kubeVersion: '>= 1.26.0'
+    name: kube-app
+    sources:
+    - https://github.com/blankdots/minimal-kube-app
+    type: application
+    urls:
+    - https://github.com/blankdots/minimal-kube-app/releases/download/kube-app-0.2.0/kube-app-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 0.1.2
     created: "2026-03-02T22:00:14.028484293Z"
     dependencies:
@@ -21,4 +41,4 @@ entries:
     urls:
     - https://github.com/blankdots/minimal-kube-app/releases/download/kube-app-0.1.2/kube-app-0.1.2.tgz
     version: 0.1.2
-generated: "2026-03-02T22:00:14.028494463Z"
+generated: "2026-03-07T08:26:21.55718956Z"
