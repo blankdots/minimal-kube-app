@@ -1,5 +1,10 @@
 # Tilt + kind local dev: build image, load into kind, deploy with Helm.
-# Prereqs: kind cluster (make kind-create), CNPG operator, helm deps (make helm-deps once).
+# Prereqs: kind cluster (make kind-create).
+
+# Ensure chart dependencies exist and CNPG operator is installed (creates Cluster CRD)
+local(
+  'helm repo add cnpg https://cloudnative-pg.github.io/charts && helm dependency build charts/minkube && helm upgrade --install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace --wait --timeout 120s',
+)
 
 # Build the app image (Tilt tags it with a content-based tag for deployments)
 docker_build(

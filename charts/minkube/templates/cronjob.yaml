@@ -16,6 +16,20 @@ spec:
           labels:
             cron: {{ include "kube-app.fullname" . }}-cronjob
         spec:
+          {{- if .Values.cnpg.enabled }}
+          initContainers:
+            - name: wait-db
+              image: alpine:3.19
+              command:
+                - sh
+                - -c
+                - |
+                  apk add --no-cache netcat-openbsd >/dev/null
+                  until nc -z {{ .Values.cnpg.auth.host | quote }} {{ .Values.cnpg.auth.port }}; do
+                    echo "waiting for Postgres at {{ .Values.cnpg.auth.host }}:{{ .Values.cnpg.auth.port }}"
+                    sleep 2
+                  done
+          {{- end }}
           containers:
           - name: {{ .Chart.Name }}-cronjob
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

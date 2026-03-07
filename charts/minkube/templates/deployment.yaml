@@ -28,6 +28,27 @@ spec:
       serviceAccountName: {{ include "kube-app.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.cnpg.enabled }}
+      initContainers:
+        - name: wait-db-secret
+          image: curlimages/curl:8.18.0
+          command:
+            - sh
+            - -c
+            - |
+              SECRET="{{ .Values.cnpg.auth.secretName }}"
+              NS="{{ .Release.Namespace }}"
+              until curl -sf -o /dev/null -w "%{http_code}" --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+                -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+                "https://kubernetes.default.svc/api/v1/namespaces/${NS}/secrets/${SECRET}" | grep -q 200; do
+                echo "waiting for secret ${SECRET}"
+                sleep 2
+              done
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-api
           securityContext:

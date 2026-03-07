@@ -2,12 +2,12 @@ apiVersion: v2
 name: kube-app
 description: kube-app exercise helm chart
 type: application
-version: 0.1.2
+version: 0.2.0
 kubeVersion: '>= 1.26.0'
 icon: https://avatars.githubusercontent.com/u/47524
 sources:
 - https://github.com/blankdots/minimal-kube-app
-appVersion: "0.1.2"
+appVersion: "0.2.0"
 dependencies:
 - name: cluster
   repository: https://cloudnative-pg.github.io/charts

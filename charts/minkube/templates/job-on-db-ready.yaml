@@ -1,0 +1,66 @@
+{{- if .Values.cnpg.enabled }}
+# One-shot Job run once when DB is ready (Helm hook). CronJob then continues on schedule.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kube-app.fullname" . }}-on-db-ready
+  labels:
+    {{- include "kube-app.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: {{ .Values.cronjob.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        cron: {{ include "kube-app.fullname" . }}-cronjob
+    spec:
+      initContainers:
+        - name: wait-db
+          image: alpine:3.19
+          command:
+            - sh
+            - -c
+            - |
+              apk add --no-cache netcat-openbsd >/dev/null
+              until nc -z {{ .Values.cnpg.auth.host | quote }} {{ .Values.cnpg.auth.port }}; do
+                echo "waiting for Postgres at {{ .Values.cnpg.auth.host }}:{{ .Values.cnpg.auth.port }}"
+                sleep 2
+              done
+      containers:
+        - name: {{ .Chart.Name }}-cronjob
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          command: ["cronjob"]
+          env:
+            {{- if .Values.log.level }}
+            - name: LOG_LEVEL
+              value: {{ .Values.log.level | quote }}
+            {{- end }}
+            - name: CRONJOB_APIBASE
+              value: {{ .Values.cronjob.apibase | default "https://registry.npmjs.org" | quote }}
+            - name: CRONJOB_PACKAGES
+              value: {{ join "," (default (list "express") .Values.cronjob.packages) | quote }}
+            - name: DB_DATABASE
+              value: {{ default "kube-app" .Values.cnpg.auth.database | quote }}
+            - name: DB_HOST
+              value: {{ required "A valid DB host is required" .Values.cnpg.auth.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.cnpg.auth.port | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                  key: {{ .Values.cnpg.auth.passwordKey | default "password" }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "cnpg.auth.secretName required" .Values.cnpg.auth.secretName | quote }}
+                  key: {{ .Values.cnpg.auth.usernameKey | default "username" }}
+      restartPolicy: Never
+{{- end }}
